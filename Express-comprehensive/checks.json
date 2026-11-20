@@ -1,0 +1,8 @@
+{
+  "assertions": [
+    { "path": "/", "expectedStatus": 200, "bodyContains": "Hello world" },
+    { "path": "/", "expectedStatus": 200, "bodyContains": "express-comprehensive fixture" },
+    { "path": "/api/foo", "expectedStatus": 200, "bodyJsonSubset": { "from": "express" } },
+    { "path": "/nope", "expectedStatus": 404 }
+  ]
+}

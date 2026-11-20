@@ -1,0 +1,7 @@
+{
+  "name": "bt-nestjs-multimodule",
+
+  "installCommand": "npm install --no-audit --no-fund"
+
+  // 不写 buildCommand、assets、entry：纯后端项目，public/ 由应用自己托管
+}

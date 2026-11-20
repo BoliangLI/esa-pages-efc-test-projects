@@ -1,0 +1,7 @@
+{
+  "name": "express-ts-precompile",
+
+  "installCommand": "npm install --no-audit --no-fund"
+
+  // 不写 buildCommand：故意不自己编译 TS，验证云构建用 esbuild 自动预编译 server.ts
+}

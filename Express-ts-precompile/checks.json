@@ -1,0 +1,6 @@
+{
+  "assertions": [
+    { "path": "/", "expectedStatus": 200, "bodyEquals": "hello from ts" },
+    { "path": "/api/health", "expectedStatus": 200, "bodyJsonSubset": { "ok": true, "from": "express-ts" } }
+  ]
+}

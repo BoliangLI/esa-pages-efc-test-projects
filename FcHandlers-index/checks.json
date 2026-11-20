@@ -1,0 +1,6 @@
+{
+  "assertions": [
+    { "path": "/api", "expectedStatus": 200, "bodyEquals": "root" },
+    { "path": "/api/users", "expectedStatus": 200, "bodyEquals": "users-list" }
+  ]
+}

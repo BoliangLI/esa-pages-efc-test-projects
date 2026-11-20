@@ -1,0 +1,95 @@
+# Fullstack-react-express fixture
+
+**综合 fixture**：同一个项目里同时含三种产物来源：
+
+| 产物 | 来源 | 输出位置 |
+|---|---|---|
+| 前端 assets | `npm run build` 走 vite build → `dist/` | `index.zip` 内 `assets/` |
+| ER 函数 | `edge.ts` 经 esbuild 编译 | `index.zip` 内 `routine/index.js` |
+| 后端容器 | Express 项目（`server.cjs` + `node_modules/express`） | `index.zip` 内 `fc/code.zip` + `fc/conf.jsonc` |
+
+## 测试目标
+
+跑通 TestStep 的 **完整 fullstack 流程**：
+
+1. install 全部依赖（前端 + 后端）
+2. `npm run build` 生成前端 `dist/`
+3. **`packBackendCode` 通过 `detector.detectAll()` 识别 Express**（是 detect→detectAll 改造的关键验证）
+4. backend-runtime 的 nft trace 把 Express + server.cjs 打成 `fc/code.zip`
+5. ER 函数 `edge.ts` esbuild 编译进 `routine/`
+6. `dist/` 拷进 `assets/`
+7. 三者一起进 `index.zip`
+
+部署后由平台按 esa.jsonc 的 `edgeFunctionFirst: ["/edge/*", "/promo/*"]` 列表分发请求：
+- `/edge/*` 和 `/promo/*` → ER 函数
+- 其余命中静态 → assets
+- 其它 → 后端容器（`/api/*`）
+
+## 关键 case 断言
+
+CI 上跑这条 case 的 requireLogTextList 应包含：
+
+- `Detected backend project (framework: Express)` — 验证 detectAll 改造让 Express 被正确识别
+- `nft trace finished:` — 验证 backend-runtime 走通
+- `Backend zip created:` — 验证后端打包成功
+- `Build artifacts generated successfully` — 验证前端 + ER 也都搞定
+- `<<LOG>>step|buildEnd<</LOG>>` — 验证整个 build 阶段没炸
+
+## 依赖说明
+
+`package.json` 同时含 vite/react（前端）和 express（后端）依赖。这是真正的 fullstack 项目结构，目的就是验证 framework-checker 在多框架共存场景下的行为。
+
+## 不部署也能验证 backend-runtime 行为
+
+如果想本地验后端打包流程，可以单独把 `server.cjs` 当独立 Express 项目跑：
+
+```bash
+node_modules/.bin/node server.cjs   # 装完依赖后
+curl http://localhost:8080/api/health
+```
+
+## 为啥 backend 是 `.cjs` 不是 `.js`
+
+`package.json` 有 `"type": "module"`（vite 前端需要）。Node 在 type:module 下会把所有 `.js` 当 ESM 解析 ——
+但 `server.cjs` 用 CJS 写法（`const express = require('express')`），如果叫 `.js` 会直接报 `require is not defined`。
+
+`.cjs` 后缀**强制 CJS 解析**，绕过 type 字段冲突。这是 fullstack 项目混合 ESM 前端 + CJS 后端的标准做法。
+
+想统一用 ESM？把 `server.cjs` 改成 `server.js`（自动 ESM），内容改成 `import express from 'express'` + `export default app`，效果一样。
+
+## 控制台配置
+
+| 项 | 值 |
+|---|---|
+| 根目录 | `Fullstack-react-express` |
+| 构建命令 | （留空） |
+| 静态资源目录 | （留空） |
+| 入口 | （留空） |
+| Node 版本 | 22.x |
+
+`esa.jsonc` 已填好所有字段（installCommand、buildCommand、assets、entry、edgeFunctionFirst）。
+
+## 构建日志应出现
+
+- `Detected backend project (framework: Express)`
+- `nft trace finished:`
+- `Backend zip created:`
+- `Build artifacts generated successfully`
+- `<<LOG>>step|buildEnd<</LOG>>`
+
+## 部署后验收
+
+```bash
+node scripts/check.mjs Fullstack-react-express https://<域名>
+```
+
+| 请求 | 期望 |
+|------|------|
+| `GET /edge/info?x=1` → 200 | `{"runtime":"edge","pathname":"/edge/info","search":"?x=1"}` |
+| `GET /promo/x` → 200 | `promo banner` + `cache-control` 含 `max-age=3600` |
+| `GET /api/health` → 200 | `{"ok":true,"runtime":"backend"}` |
+| `GET /api/users/7` → 200 | `{"user":"7","source":"express"}` |
+| `POST /api/echo` → 200 | `{"received":{"k":"v"}}` |
+| `GET /` → 200 | 包含 `<div id="root">` |
+
+通过标准：`✓6 ✗0`。

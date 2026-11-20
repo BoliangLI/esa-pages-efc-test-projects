@@ -1,0 +1,10 @@
+{
+  "assertions": [
+    { "path": "/edge/info?x=1", "expectedStatus": 200, "bodyJsonSubset": { "runtime": "edge", "pathname": "/edge/info", "search": "?x=1" } },
+    { "path": "/promo/x", "expectedStatus": 200, "bodyEquals": "promo banner", "headersContain": { "cache-control": "max-age=3600" } },
+    { "path": "/api/health", "expectedStatus": 200, "bodyJsonSubset": { "ok": true, "runtime": "backend" } },
+    { "path": "/api/users/7", "expectedStatus": 200, "bodyJsonSubset": { "user": "7", "source": "express" } },
+    { "path": "/api/echo", "method": "POST", "headers": { "content-type": "application/json" }, "body": { "k": "v" }, "expectedStatus": 200, "bodyJsonSubset": { "received": { "k": "v" } } },
+    { "path": "/", "expectedStatus": 200, "bodyContains": "<div id=\"root\">" }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "bt-node",
+
+  // 没有依赖，跳过安装
+  "installCommand": ""
+
+  // 不写 buildCommand、assets、entry：纯后端项目，public/ 由应用自己托管
+}

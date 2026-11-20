@@ -1,0 +1,8 @@
+{
+  "assertions": [
+    { "path": "/api/foo", "expectedStatus": 200, "bodyJsonSubset": { "from": "foo" } },
+    { "path": "/api/health", "expectedStatus": 200, "bodyJsonSubset": { "ok": true } },
+    { "path": "/api/items", "expectedStatus": 200, "bodyJsonSubset": { "list": [] } },
+    { "path": "/api/items", "method": "POST", "expectedStatus": 201, "bodyJsonSubset": { "created": true } }
+  ]
+}

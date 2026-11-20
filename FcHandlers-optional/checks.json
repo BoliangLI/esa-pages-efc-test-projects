@@ -1,0 +1,6 @@
+{
+  "assertions": [
+    { "path": "/api", "expectedStatus": 200, "bodyJsonSubset": { "slug": null } },
+    { "path": "/api/foo/bar/baz", "expectedStatus": 200, "bodyJsonSubset": { "slug": "foo/bar/baz" } }
+  ]
+}

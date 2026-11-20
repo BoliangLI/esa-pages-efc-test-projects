@@ -1,0 +1,14 @@
+{
+  "assertions": [
+    { "path": "/", "expectedStatus": 200, "bodyContains": "FC Handlers Comprehensive Example" },
+    { "path": "/api/foo", "expectedStatus": 200, "bodyJsonSubset": { "from": "foo" } },
+    { "path": "/api/health", "expectedStatus": 200, "bodyJsonSubset": { "ok": true } },
+    { "path": "/api/items", "expectedStatus": 200, "bodyJsonSubset": { "list": [] } },
+    { "path": "/api/items", "method": "POST", "expectedStatus": 201, "bodyJsonSubset": { "created": true } },
+    { "path": "/api/items", "method": "DELETE", "expectedStatus": 405, "bodyEquals": "Method Not Allowed", "headersContain": { "allow": "GET" } },
+    { "path": "/api/users/42", "expectedStatus": 200, "bodyJsonSubset": { "user": "42" } },
+    { "path": "/api/users/profile", "expectedStatus": 200, "bodyEquals": "profile" },
+    { "path": "/api/posts/a/b/c", "expectedStatus": 200, "bodyJsonSubset": { "slug": "a/b/c" } },
+    { "path": "/api/nope", "expectedStatus": 404 }
+  ]
+}

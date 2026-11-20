@@ -1,0 +1,7 @@
+{
+  "name": "express-comprehensive",
+
+  "installCommand": "npm install --no-audit --no-fund"
+
+  // 不写 buildCommand、assets、entry：纯后端项目，由云构建识别 Express 并打包 fc/code.zip
+}

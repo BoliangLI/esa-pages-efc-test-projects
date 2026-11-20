@@ -1,0 +1,7 @@
+{
+  "name": "nuxt4-hybrid",
+
+  "installCommand": "npm install"
+
+  // 不写 buildCommand、assets：Nuxt 由云构建内置的 pcg 构建，静态资源从产物里收集
+}

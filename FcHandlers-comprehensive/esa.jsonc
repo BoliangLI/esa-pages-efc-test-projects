@@ -1,0 +1,11 @@
+{
+  "name": "fc-handlers-comprehensive",
+
+  // 没有依赖，跳过安装
+  "installCommand": "",
+
+  // 演示页；/api/* 由 api/ 下的 handler 处理
+  "assets": {
+    "directory": "./public"
+  }
+}

@@ -1,0 +1,34 @@
+# Dependencies and lockfiles
+**/node_modules/
+**/package-lock.json
+**/npm-shrinkwrap.json
+**/pnpm-lock.yaml
+**/yarn.lock
+
+# TestStep / framework build artifacts
+**/index.zip
+**/fc/
+**/routine/
+**/assets/
+# Nuxt-app/assets/css 是源码（nuxt.config.ts 引用），其余为构建产物
+!Nuxt-app/assets/
+Nuxt-app/assets/*
+!Nuxt-app/assets/css/
+**/.pcg/
+**/.nuxt/
+**/.nitro/
+**/.output/
+**/.ts-build/
+**/dist/
+
+# Generated fixture data
+**/views/__filler/
+.local-test/
+
+# Logs and local files
+*.log
+*.jsonl
+.DS_Store
+.env
+.env.*
+!.env.example

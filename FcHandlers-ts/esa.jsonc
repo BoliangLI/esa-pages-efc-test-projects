@@ -1,0 +1,6 @@
+{
+  "name": "fc-handlers-ts",
+
+  // 没有依赖，跳过安装
+  "installCommand": ""
+}
