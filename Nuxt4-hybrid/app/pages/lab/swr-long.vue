@@ -1,3 +1,3 @@
 <template>
-  <LabStamp title="长 TTL（版本隔离）" rule="swr: 86400" expect="重新部署后首次访问是冷缓存，renderId 与上一版本不同" />
+  <LabStamp title="版本隔离（5s TTL）" rule="swr: 5" expect="缓存过期前切换到新版本，首次访问应是冷缓存，renderId 与上一版本不同" />
 </template>

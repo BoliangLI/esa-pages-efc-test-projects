@@ -5,6 +5,7 @@ Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 的各种缓存�
 - `nuxt.config.ts` 不写 `nitro.preset`，构建时由 pcg 用 `NITRO_PRESET` 切到 esa-nitro-preset。
 - 页面都用 `LabStamp` 组件展示 renderId、渲染时间、渲染实例、cookie 和 payload 数据，每页写明了「预期」。
 - 入口：`/lab`（总览页，自身不缓存），自动化观测：`./probe.sh`。
+- 页面、接口和 IPX 图片的显式缓存 TTL 统一为 **5s**，便于快速观察过期；`swr: true` 专项保留默认约 1s。
 
 ## 控制台配置
 
@@ -46,21 +47,21 @@ Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 的各种缓存�
 
 ## 观测表
 
-「本地」列是本地 mock Gateway 下的实测结果；「线上待确认」需要部署后用 probe.sh 或浏览器观察。
+「本地」列记录此前 mock Gateway 下的观测行为；表中缓存时间和响应头已按当前 5s 配置更新为预期值，缩短 TTL 后需重新验证。「线上待确认」需要部署后用 probe.sh 或浏览器观察。
 
 ### 页面缓存
 
 | 路径 | 规则 | 本地实测 | 线上待确认 |
 |------|------|----------|------------|
-| `/lab/swr` | `swr: 30` | `s-maxage=30, stale-while-revalidate`，重复请求 renderId 不变 | L1 命中时 `age`/`via` 等边缘头 |
-| `/lab/l2/swr` | `swr: 30`，关 L1 | L2 命中 renderId 不变；过期后第 1 次返回旧内容，3s 后已重新生成 | 跨实例：`rendered-by ≠ served-by`；响应后实例被冻结时后台重新生成是否完成 |
-| `/lab/swr-long` | `swr: 86400` | — | 重新部署后首次访问是冷缓存（renderId 与上一版本不同） |
+| `/lab/swr` | `swr: 5` | `s-maxage=5, stale-while-revalidate`，重复请求 renderId 不变 | L1 命中时 `age`/`via` 等边缘头 |
+| `/lab/l2/swr` | `swr: 5`，关 L1 | L2 命中 renderId 不变；过期后第 1 次返回旧内容，3s 后已重新生成 | 跨实例：`rendered-by ≠ served-by`；响应后实例被冻结时后台重新生成是否完成 |
+| `/lab/swr-long` | `swr: 5` | — | 缓存过期前切换到新版本，首次访问应是冷缓存（renderId 与上一版本不同）；超出 5s 无法区分自然过期与版本隔离 |
 | `/lab/swr-true` | `swr: true` | 只有 `stale-while-revalidate`，每次返回上一次的渲染 | 同左 |
-| `/lab/cache-block` | `cache: { maxAge: 20, swr: false }` | `max-age=20` | 同左 |
-| `/lab/isr` | `isr: 60` | 无 cache-control，每次都重新渲染（isr 只被 vercel/netlify 等 preset 识别） | 同左 |
-| `/lab/personal` | `swr: 60`，不配 varies | Nitro 缓存层只转发 varies 里的请求头，cookie 被剥掉，页面看到 `(none)`：个性化无声失效，但不串号 | 同左 |
-| `/lab/personal-varies` | `varies: ['cookie']` | L2 按 cookie 各存一份；响应**不带 `Vary: cookie`**，却有 `s-maxage=60` | L1 是否把第一个用户的页面返回给所有人（串号） |
-| `/lab/boom` | `swr: 30` | 500 + `no-cache`，不缓存 | 同左 |
+| `/lab/cache-block` | `cache: { maxAge: 5, swr: false }` | `max-age=5` | 同左 |
+| `/lab/isr` | `isr: 5` | 无 cache-control，每次都重新渲染（isr 只被 vercel/netlify 等 preset 识别） | 同左 |
+| `/lab/personal` | `swr: 5`，不配 varies | Nitro 缓存层只转发 varies 里的请求头，cookie 被剥掉，页面看到 `(none)`：个性化无声失效，但不串号 | 同左 |
+| `/lab/personal-varies` | `varies: ['cookie']` | L2 按 cookie 各存一份；响应**不带 `Vary: cookie`**，却有 `s-maxage=5` | L1 是否把第一个用户的页面返回给所有人（串号） |
+| `/lab/boom` | `swr: 5` | 500 + `no-cache`，不缓存 | 同左 |
 | 任意缓存页 + 不同 query | — | 每个 query 各存一份（`?utm=1`、`?utm=2` 是两个 OSS 对象） | OSS 对象数量随 query 膨胀 |
 
 ### payload（`<path>/_payload.json`）
@@ -77,8 +78,8 @@ Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 的各种缓存�
 | 路径 | 本地实测 | 线上待确认 |
 |------|----------|------------|
 | `/lab/photo.jpg`（原图 1.6MB） | 本地由 Nitro 提供 | 是否边缘直出（`x-lab-served-by` 为空） |
-| `/_ipx/f_webp&w_300/lab/photo.jpg` | 200，约 1.5KB webp，`max-age=60, public, s-maxage=60` | linux 构建机打进 code.zip 的 sharp 能否在 pod 里加载 |
-| `/_ipx/s_100x100/lab/photo.jpg`（`swr: 3600`） | 第 1 次合法 jpeg；第 2 次（L2 命中）变成 2 字节的 `{}`、`application/json`，图片损坏（Nitro 缓存只保存字符串 body） | 同左 |
+| `/_ipx/f_webp&w_300/lab/photo.jpg` | 200，约 1.5KB webp，IPX 文件缓存 `maxAge: 5`，预期 `max-age=5, public, s-maxage=5` | linux 构建机打进 code.zip 的 sharp 能否在 pod 里加载 |
+| `/_ipx/s_100x100/lab/photo.jpg`（`swr: 5`） | 第 1 次合法 jpeg；第 2 次（L2 命中）变成 2 字节的 `{}`、`application/json`，图片损坏（Nitro 缓存只保存字符串 body） | 同左 |
 
 ### 其他
 
@@ -103,7 +104,7 @@ Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 的各种缓存�
 
 ```bash
 ./probe.sh https://<域名>           # 约 30s
-SLOW=1 ./probe.sh https://<域名>    # 额外跑 swr 过期（多约 40s）
+SLOW=1 ./probe.sh https://<域名>    # 额外跑 swr 过期（等待 6s 过期 + 3s 后台重新生成）
 ```
 
 - 在本机执行，只向部署域名发 HTTP 请求，不需要进入容器；本机需要 `curl`。

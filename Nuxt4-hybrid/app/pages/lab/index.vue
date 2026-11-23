@@ -1,12 +1,12 @@
 <script setup lang="ts">
 // 总览页本身不缓存；下方三块数据全部在浏览器里实时请求，不受页面缓存影响。
 const pages = [
-  ['/lab/swr', 'swr: 30'],
-  ['/lab/l2/swr', 'swr: 30，只看 L2'],
-  ['/lab/swr-long', 'swr: 86400，版本隔离'],
+  ['/lab/swr', 'swr: 5'],
+  ['/lab/l2/swr', 'swr: 5，只看 L2'],
+  ['/lab/swr-long', 'swr: 5，版本隔离'],
   ['/lab/swr-true', 'swr: true（默认 maxAge=1）'],
-  ['/lab/cache-block', 'cache maxAge 20 + swr false'],
-  ['/lab/isr', 'isr: 60'],
+  ['/lab/cache-block', 'cache maxAge 5 + swr false'],
+  ['/lab/isr', 'isr: 5'],
   ['/lab/personal', '不配 varies 时 cookie 被剥掉'],
   ['/lab/personal-varies', 'varies: cookie（L1 串号）'],
   ['/lab/swr/_payload.json', '缓存页面的外置 payload'],

@@ -4,7 +4,7 @@
 # 用法：
 #   ./probe.sh https://<域名>            # 线上
 #   ./probe.sh http://127.0.0.1:3101     # 本地（见 README「本地验证」）
-#   SLOW=1 ./probe.sh <base>             # 额外跑 swr 过期（约 40s）
+#   SLOW=1 ./probe.sh <base>             # 额外跑 swr 过期（额外等待约 9s）
 #
 # 判定：✓ 与 README 观测表的「现状」一致；✗ 不一致（需要人工看）；· 只打印观测值。
 # 每次运行带唯一 query（?p=<run>），保证 L1/L2 都是冷的；需要排除 L1 的判定走 /lab/l2/**。
@@ -79,11 +79,11 @@ fetch "$BASE/api/lab/diag"
 check "cache 存储往返（ESA_CACHE_GW_* 齐全时为 true）" true "$(json roundTrip)"
 info "$(head -c 400 "$TMP/b")"
 
-section "swr 命中（/lab/swr，swr: 30）"
+section "swr 命中（/lab/swr，swr: 5）"
 U="$BASE/lab/swr?p=$RUN"
 page "$U"
 R1=$RID
-check "响应头" "s-maxage=30, stale-while-revalidate" "$(hdr cache-control)"
+check "响应头" "s-maxage=5, stale-while-revalidate" "$(hdr cache-control)"
 page "$U"
 check "第 2 次 renderId 不变" "$R1" "$RID"
 page "$U"
@@ -125,12 +125,12 @@ check "热 key 20 并发只有 1 个 renderId" 1 "$(awk '{print $2}' "$TMP/p3" |
 info "热 key 由 $(awk '{print $1}' "$TMP/p3" | sort -u | wc -l | tr -d ' ') 个实例返回"
 
 if [ "${SLOW:-0}" = "1" ]; then
-  section "swr 过期（/lab/l2/swr，等 35s）"
+  section "swr 过期（/lab/l2/swr，等 6s）"
   U="$BASE/lab/l2/swr?p=$RUN-exp"
   page "$U"
   R1=$RID
-  info "等待 35s..."
-  sleep 35
+  info "等待 6s..."
+  sleep 6
   page "$U"
   check "过期后第 1 次返回旧内容" "$R1" "$RID"
   sleep 3
@@ -150,7 +150,7 @@ sleep 2
 page "$U"
 info "swr: true 每次返回上一次的渲染，后台重新生成"
 page "$BASE/lab/cache-block?p=$RUN"
-check "cache-block 响应头" "max-age=20" "$(hdr cache-control)"
+check "cache-block 响应头" "max-age=5" "$(hdr cache-control)"
 U="$BASE/lab/isr?p=$RUN"
 page "$U"
 R1=$RID

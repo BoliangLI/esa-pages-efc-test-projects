@@ -5,6 +5,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-01-01',
   devtools: { enabled: false },
   modules: ['@nuxt/image'],
+  image: {
+    ipx: { fs: { maxAge: 5 } }
+  },
   runtimeConfig: {
     // 构建期求值后固化进产物
     labBuildValue: process.env.LAB_BUILD_VALUE || 'unset-at-build',
@@ -15,23 +18,23 @@ export default defineNuxtConfig({
     }
   },
   routeRules: {
-    '/lab/swr': { swr: 30 },
-    '/lab/l2/swr': { swr: 30 },
-    '/lab/swr-long': { swr: 86400 },
+    '/lab/swr': { swr: 5 },
+    '/lab/l2/swr': { swr: 5 },
+    '/lab/swr-long': { swr: 5 },
     // swr: true 不带数字时，Nitro 默认 maxAge=1：每次返回上一次的渲染结果
     '/lab/swr-true': { swr: true },
     // cache 默认 swr=true，要阻塞式重新生成必须显式 swr: false
-    '/lab/cache-block': { cache: { maxAge: 20, swr: false } },
+    '/lab/cache-block': { cache: { maxAge: 5, swr: false } },
     // isr 只被 vercel/netlify/zeabur preset 识别，这里观察 ESA 上的实际表现
-    '/lab/isr': { isr: 60 },
-    '/lab/personal': { swr: 60 },
-    '/lab/personal-varies': { cache: { swr: true, maxAge: 60, varies: ['cookie'] } },
-    '/lab/boom': { swr: 30 },
+    '/lab/isr': { isr: 5 },
+    '/lab/personal': { swr: 5 },
+    '/lab/personal-varies': { cache: { swr: true, maxAge: 5, varies: ['cookie'] } },
+    '/lab/boom': { swr: 5 },
     '/lab/prerendered': { prerender: true },
     '/lab/spa': { ssr: false },
     '/lab/old': { redirect: { to: '/lab/swr', statusCode: 301 } },
     '/api/lab/cors': { cors: true },
     '/lab-static/**': { headers: { 'x-lab-static': '1' } },
-    '/_ipx/s_100x100/**': { swr: 3600 }
+    '/_ipx/s_100x100/**': { swr: 5 }
   }
 });

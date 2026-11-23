@@ -1,4 +1,4 @@
-// defineCachedEventHandler：接口级缓存，swr + maxAge 30s，固定 key 便于手动失效。
+// defineCachedEventHandler：接口级缓存，swr + maxAge 5s，固定 key 便于手动失效。
 // 存储 key 为 /cache:nitro/handlers:lab-route:fixed.json。
 export default defineCachedEventHandler(
   (event) => {
@@ -10,5 +10,5 @@ export default defineCachedEventHandler(
       cacheKey: '/cache:nitro/handlers:lab-route:fixed.json'
     };
   },
-  { name: 'lab-route', swr: true, maxAge: 30, getKey: () => 'fixed' }
+  { name: 'lab-route', swr: true, maxAge: 5, getKey: () => 'fixed' }
 );
