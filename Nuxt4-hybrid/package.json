@@ -13,6 +13,10 @@
   "dependencies": {
     "@nuxt/image": "^2.2.1",
     "consola": "^3.4.2",
+    "nitropack": "2.13.6",
     "nuxt": "4.4.8"
+  },
+  "overrides": {
+    "nitropack": "$nitropack"
   }
 }

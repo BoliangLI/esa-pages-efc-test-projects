@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 
 const isDev = process.env.NODE_ENV === 'development';
+const isEsaPreset = process.env.NITRO_PRESET === 'esa-nitro-preset';
 
 // Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 各缓存形态、预渲染、SPA、
 // 重定向/CORS/静态 headers、@nuxt/image（ipx + sharp）与运行时环境。
@@ -9,6 +10,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-01-01',
   devtools: { enabled: false },
   modules: ['@nuxt/image'],
+  nitro: {
+    alias: isEsaPreset ? {} : {
+      'esa-nitro-preset/isr': fileURLToPath(new URL('./server/lib/isr-unsupported.ts', import.meta.url))
+    }
+  },
   image: {
     domains: ['picsum.photos', 'fastly.picsum.photos'],
     ipx: {
@@ -39,8 +45,9 @@ export default defineNuxtConfig({
     '/lab/swr-true': { swr: true },
     // cache 默认 swr=true，要阻塞式重新生成必须显式 swr: false
     '/lab/cache-block': { cache: { maxAge: 5, swr: false } },
-    // isr 只被 vercel/netlify/zeabur preset 识别，这里观察 ESA 上的实际表现
+    // 原生 node-server 与 ESA preset 的 ISR 行为不同。
     '/lab/isr': { isr: 5 },
+    '/lab/isr-revalidate/**': { isr: 60 },
     '/lab/personal': { swr: 5 },
     '/lab/personal-varies': { cache: { swr: true, maxAge: 5, varies: ['cookie'] } },
     '/lab/boom': { swr: 5 },

@@ -5,6 +5,7 @@
 #   ./probe.sh https://<域名>            # 线上
 #   ./probe.sh http://127.0.0.1:3101     # 本地（见 README「本地验证」）
 #   SLOW=1 ./probe.sh <base>             # 额外跑 swr 过期（额外等待约 9s）
+#   ISR_ONLY=1 ./probe.sh <base>         # 只跑 ISR 按需失效
 #
 # 判定：✓ 与 README 观测表的「现状」一致；✗ 不一致（需要人工看）；· 只打印观测值。
 # 每次运行带唯一 query（?p=<run>），保证 L1/L2 都是冷的；需要排除 L1 的判定走 /lab/l2/**。
@@ -47,6 +48,98 @@ page() { # 打印一次页面请求的关键信息，并把 renderId 写入 $RID
   RID=$(lab renderId)
   info "$STATUS rid=${RID:0:8} user=$(lab cookieUser) data=$(lab dataId | cut -c1-8)/$(lab dataUser) cc=[$(hdr cache-control)] served=$(hdr x-lab-served-by | tail -c 7) key=$(hdr x-lab-cache-key) $(edge)"
 }
+isr_invalidate() {
+  local scope=$1 cdn origin
+  fetch "$BASE/api/lab/isr-revalidate/$RUN" -H 'content-type: application/json' -d "{\"scope\":\"$scope\"}"
+  origin=$(json originInvalidated)
+  cdn=$(json cdn)
+  check "按 $scope 失效状态码" 200 "$STATUS"
+  check "按 $scope 失效已写入源站" true "$origin"
+  info "按 $scope 失效 CDN 提交状态：$cdn"
+  case "$cdn" in
+    submitted|skipped) ;;
+    *) check "按 $scope 失效 CDN 提交状态" submitted "$cdn" ;;
+  esac
+  [ "$STATUS" = 200 ] && [ "$origin" = true ]
+}
+isr_refetch() {
+  local url=$1 previous=$2 attempt
+  for attempt in {1..10}; do
+    fetch "$url"
+    RID=$(lab renderId)
+    if [ "$STATUS" = 200 ] && [ -n "$RID" ] && [ "$RID" != "$previous" ] && [ -n "$(lab isrDataId)" ]; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+probe_isr() {
+  section "ISR 按需失效（路径与共享数据 key）"
+  local root="$BASE/lab/isr-revalidate/$RUN" started=$SECONDS
+  local index variant initial_data new_data
+  local variants=('article?lang=zh' 'article?lang=en' related)
+  local renders=()
+  for index in 0 1 2; do
+    variant=${variants[index]}
+    page "$root/$variant"
+    check "ISR $variant 首次访问" 200 "$STATUS"
+    if [ -z "$RID" ] || [ -z "$(lab isrDataId)" ]; then
+      check "ISR $variant 渲染与数据 ID" present missing
+      return
+    fi
+    renders[index]=$RID
+    if [ "$index" = 0 ]; then initial_data=$(lab isrDataId); fi
+    check "ISR $variant 共享数据" "$initial_data" "$(lab isrDataId)"
+    page "$root/$variant"
+    check "ISR $variant 命中缓存" "${renders[index]}" "$RID"
+  done
+  if [ "${renders[0]}" = "${renders[1]}" ]; then
+    check "ISR 查询参数隔离" separate same
+  fi
+
+  isr_invalidate path || return
+  for index in 0 1; do
+    variant=${variants[index]}
+    if isr_refetch "$root/$variant" "${renders[index]}"; then
+      check "路径失效后 $variant 已重渲染" changed changed
+      check "路径失效保留共享数据" "$initial_data" "$(lab isrDataId)"
+      renders[index]=$RID
+    else
+      check "路径失效后 $variant 已重渲染" changed unchanged
+    fi
+  done
+  page "$root/related"
+  check "路径失效保留 related 缓存" "${renders[2]}" "$RID"
+
+  isr_invalidate key || return
+  new_data=''
+  for index in 0 1 2; do
+    variant=${variants[index]}
+    if isr_refetch "$root/$variant" "${renders[index]}"; then
+      check "数据 key 失效后 $variant 已重渲染" changed changed
+      if [ -z "$new_data" ]; then new_data=$(lab isrDataId); fi
+      check "数据 key 失效后 $variant 共享新数据" "$new_data" "$(lab isrDataId)"
+    else
+      check "数据 key 失效后 $variant 已重渲染" changed unchanged
+    fi
+  done
+  if [ -z "$new_data" ] || [ "$new_data" = "$initial_data" ]; then
+    check "共享数据已重新计算" changed unchanged
+  else
+    check "共享数据已重新计算" changed changed
+  fi
+  if [ "$((SECONDS - started))" -ge 60 ]; then
+    check "探针在 ISR TTL 内完成" '<60s' "$((SECONDS - started))s"
+  fi
+}
+
+if [ "${ISR_ONLY:-0}" = 1 ]; then
+  probe_isr
+  printf '\n合计：✓ %s  ✗ %s\n' "$PASS" "$FAIL"
+  [ "$FAIL" -eq 0 ]
+  exit $?
+fi
 sha() {
   if command -v sha256sum >/dev/null; then
     sha256sum "$1" | cut -c1-64
@@ -154,13 +247,10 @@ check "cache-block 响应头" "max-age=5" "$(hdr cache-control)"
 U="$BASE/lab/isr?p=$RUN"
 page "$U"
 R1=$RID
-check "isr 无 cache-control" "" "$(hdr cache-control)"
+check "ISR 页面状态码" 200 "$STATUS"
 page "$U"
-if [ "$RID" != "$R1" ]; then
-  check "isr 不缓存（每次新 renderId）" changed changed
-else
-  check "isr 不缓存（每次新 renderId）" changed unchanged
-fi
+check "ISR 在 TTL 内复用页面" "${R1:-有 renderId}" "$RID"
+probe_isr
 
 section "query 拆分缓存"
 page "$BASE/lab/l2/swr?p=$RUN&utm=1"

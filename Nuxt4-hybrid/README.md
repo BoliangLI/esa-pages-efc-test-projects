@@ -5,7 +5,7 @@ Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 的各种缓存�
 - `nuxt.config.ts` 不写 `nitro.preset`，构建时由 pcg 用 `NITRO_PRESET` 切到 esa-nitro-preset。
 - 页面都用 `LabStamp` 组件展示 renderId、渲染时间、渲染实例、cookie 和 payload 数据，每页写明了「预期」。
 - 入口：`/lab`（总览页，自身不缓存），自动化观测：`./probe.sh`。
-- 页面、接口和 IPX 图片的显式缓存 TTL 统一为 **5s**，便于快速观察过期；`swr: true` 专项保留默认约 1s。
+- 原有页面、接口和 IPX 图片的显式缓存 TTL 为 **5s**，便于观察过期。`swr: true` 专项保留默认约 1s，ISR 按需失效专项用 **60s**，避免把自然过期当成失效成功。
 
 ## 控制台配置
 
@@ -30,6 +30,8 @@ Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 的各种缓存�
 | 4.4.8 | `^22.12.0 \|\| ^24.11.0 \|\| >=26.0.0` | 两档都可用 |
 
 升级 Nuxt 前先确认云构建的 Node 小版本。
+
+本项目固定 Nitro 2.13.6。当前 ESA preset 的 ISR 构建补丁依赖 2.13 的缓存实现，Nitro 2.14 会被构建阶段拒绝。
 
 ## 两层缓存
 
@@ -58,11 +60,22 @@ Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 的各种缓存�
 | `/lab/swr-long` | `swr: 5` | — | 缓存过期前切换到新版本，首次访问应是冷缓存（renderId 与上一版本不同）；超出 5s 无法区分自然过期与版本隔离 |
 | `/lab/swr-true` | `swr: true` | 只有 `stale-while-revalidate`，每次返回上一次的渲染 | 同左 |
 | `/lab/cache-block` | `cache: { maxAge: 5, swr: false }` | `max-age=5` | 同左 |
-| `/lab/isr` | `isr: 5` | 无 cache-control，每次都重新渲染（isr 只被 vercel/netlify 等 preset 识别） | 同左 |
+| `/lab/isr` | `isr: 5` | 当前 ESA preset 下，TTL 内重复请求复用 renderId。原生 node-server 下每次重新渲染 | 边缘命中和过期后后台重新生成 |
 | `/lab/personal` | `swr: 5`，不配 varies | Nitro 缓存层只转发 varies 里的请求头，cookie 被剥掉，页面看到 `(none)`：个性化无声失效，但不串号 | 同左 |
 | `/lab/personal-varies` | `varies: ['cookie']` | L2 按 cookie 各存一份；响应**不带 `Vary: cookie`**，却有 `s-maxage=5` | L1 是否把第一个用户的页面返回给所有人（串号） |
 | `/lab/boom` | `swr: 5` | 500 + `no-cache`，不缓存 | 同左 |
 | 任意缓存页 + 不同 query | — | 每个 query 各存一份（`?utm=1`、`?utm=2` 是两个 OSS 对象） | OSS 对象数量随 query 膨胀 |
+
+### ISR 按需失效
+
+每次探针使用独立的 `run`，访问 `/lab/isr-revalidate/<run>/article` 的两个查询参数版本和同一 `run` 的 `related` 页面。三份页面缓存共享一个 Nitro 函数缓存。对 `/api/lab/isr-revalidate/<run>` 发送 JSON POST 可执行以下操作。
+
+| 请求体 | 探针断言 |
+|--------|----------|
+| `{"scope":"path"}` | `article` 的两个版本重新渲染，`related` 的 renderId 和共享数据 ID 保持原值 |
+| `{"scope":"key"}` | 三份页面都重新渲染，且读到同一个新的共享数据 ID |
+
+探针在 60 秒 TTL 内完成，另外记录 `originInvalidated` 和 `cdn`。通过 ESA 边缘发起时预期 `cdn=submitted`，本地直接访问源站时为 `skipped`。Mock Gateway 模拟源站缓存和失效记录。原生 node-server 可查看测试页，POST 失效返回 501。
 
 ### payload（`<path>/_payload.json`）
 
@@ -105,6 +118,7 @@ Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 的各种缓存�
 ```bash
 ./probe.sh https://<域名>           # 约 30s
 SLOW=1 ./probe.sh https://<域名>    # 额外跑 swr 过期（等待 6s 过期 + 3s 后台重新生成）
+ISR_ONLY=1 ./probe.sh https://<域名> # 只跑 ISR 按需失效，有失败时退出非零
 ```
 
 - 在本机执行，只向部署域名发 HTTP 请求，不需要进入容器；本机需要 `curl`。

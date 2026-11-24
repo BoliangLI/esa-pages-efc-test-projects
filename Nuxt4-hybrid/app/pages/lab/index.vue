@@ -7,6 +7,7 @@ const pages = [
   ['/lab/swr-true', 'swr: true（默认 maxAge=1）'],
   ['/lab/cache-block', 'cache maxAge 5 + swr false'],
   ['/lab/isr', 'isr: 5'],
+  ['/lab/isr-revalidate/manual/article', 'ISR 按路径和数据 key 失效'],
   ['/lab/personal', '不配 varies 时 cookie 被剥掉'],
   ['/lab/personal-varies', 'varies: cookie（L1 串号）'],
   ['/lab/swr/_payload.json', '缓存页面的外置 payload'],
