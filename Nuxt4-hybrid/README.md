@@ -68,11 +68,13 @@ Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 的各种缓存�
 
 ### ISR 按需失效
 
+从 `/lab` 打开 ISR 按需失效页，先沿关联页链接分别记下 `article` 和 `related` 的 renderId。点击「失效当前页面」会重新加载当前页。在 60 秒 TTL 内再次打开关联页，可对照两页的 renderId。
+
 每次探针使用独立的 `run`，访问 `/lab/isr-revalidate/<run>/article` 的两个查询参数版本和同一 `run` 的 `related` 页面。三份页面缓存共享一个 Nitro 函数缓存。对 `/api/lab/isr-revalidate/<run>` 发送 JSON POST 可执行以下操作。
 
 | 请求体 | 探针断言 |
 |--------|----------|
-| `{"scope":"path"}` | `article` 的两个版本重新渲染，`related` 的 renderId 和共享数据 ID 保持原值 |
+| `{"scope":"path"}` | 默认失效 `article`。它的两个版本重新渲染，`related` 的 renderId 和共享数据 ID 保持原值。页面按钮通过 `fixture` 指定当前页 |
 | `{"scope":"key"}` | 三份页面都重新渲染，且读到同一个新的共享数据 ID |
 
 探针在 60 秒 TTL 内完成，另外记录 `originInvalidated` 和 `cdn`。通过 ESA 边缘发起时预期 `cdn=submitted`，本地直接访问源站时为 `skipped`。Mock Gateway 模拟源站缓存和失效记录。原生 node-server 可查看测试页，POST 失效返回 501。
