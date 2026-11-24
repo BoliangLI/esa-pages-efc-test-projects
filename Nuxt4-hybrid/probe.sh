@@ -222,6 +222,20 @@ fetch "$BASE/api/lab/data-storage"
 info "第 2 次：$(head -c 300 "$TMP/b")（previous 为 null 或 count 不连续=实例内存储/不可写）"
 
 section "图片优化（@nuxt/image + ipx）"
+fetch "$BASE/lab/image"
+check "图片测试页状态码" 200 "$STATUS"
+cp "$TMP/b" "$TMP/image.html"
+for id in image-remote image-public-path image-static-import; do
+  src=$(grep -oE "<img[^>]* id=\"$id\"[^>]*>" "$TMP/image.html" | sed -nE 's/.* src="([^"]+)".*/\1/p' | sed 's/&amp;/\&/g')
+  case "$src" in
+    /_ipx/*)
+      fetch "$BASE$src"
+      check "$id 状态码" 200 "$STATUS"
+      check "$id 图片格式" image/webp "$(hdr content-type)"
+      ;;
+    *) check "$id 图片地址" '/_ipx/…' "${src:-未找到}" ;;
+  esac
+done
 fetch "$BASE/lab/photo.jpg"
 info "原图 $(wc -c < "$TMP/b" | tr -d ' ') bytes，served=$(hdr x-lab-served-by | tail -c 7)（空=边缘直出）"
 fetch "$BASE/_ipx/f_webp&w_300/lab/photo.jpg"

@@ -1,3 +1,7 @@
+import { fileURLToPath } from 'node:url';
+
+const isDev = process.env.NODE_ENV === 'development';
+
 // Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 各缓存形态、预渲染、SPA、
 // 重定向/CORS/静态 headers、@nuxt/image（ipx + sharp）与运行时环境。
 // 不写 nitro.preset：走默认 node-server，由 pcg 构建时用 NITRO_PRESET 切到 esa-nitro-preset。
@@ -6,7 +10,17 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
   modules: ['@nuxt/image'],
   image: {
-    ipx: { fs: { maxAge: 5 } }
+    domains: ['picsum.photos', 'fastly.picsum.photos'],
+    ipx: {
+      // 开发时 Vite 的导入路径还未写入产物目录，交给 IPX 从源码目录读取。
+      ...(isDev && { alias: { '/_nuxt/assets/images/': '/' } }),
+      fs: {
+        maxAge: 5,
+        ...(isDev && {
+          dir: ['./public', './app/assets/images'].map(path => fileURLToPath(new URL(path, import.meta.url)))
+        })
+      }
+    }
   },
   runtimeConfig: {
     // 构建期求值后固化进产物
