@@ -1,0 +1,10 @@
+node_modules/
+.output/
+.nuxt/
+.pcg/
+.data/
+index.zip
+assets/
+!app/assets/
+fc/
+routine/

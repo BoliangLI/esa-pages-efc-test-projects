@@ -1,0 +1,25 @@
+{
+  "name": "nuxt4-hybrid-pnpm",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "start": "node .output/server/index.mjs"
+  },
+  "dependencies": {
+    "@nuxt/image": "^2.2.1",
+    "consola": "^3.4.2",
+    "nitropack": "2.13.6",
+    "nuxt": "4.4.8"
+  },
+  "packageManager": "pnpm@10.23.0",
+  "pnpm": {
+    "overrides": {
+      "nitropack": "2.13.6"
+    }
+  }
+}

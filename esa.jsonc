@@ -1,0 +1,4 @@
+{
+  "name": "nuxt4-hybrid-pnpm",
+  "installCommand": "pnpm install --frozen-lockfile"
+}
