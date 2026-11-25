@@ -1,4 +1,4 @@
 {
-  "name": "nuxt4-hybrid-pnpm",
+  "name": "pcg-nuxt4-pnpm-commonjs",
   "installCommand": "pnpm install --frozen-lockfile"
 }

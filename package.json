@@ -2,7 +2,7 @@
   "name": "nuxt4-hybrid-pnpm",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
