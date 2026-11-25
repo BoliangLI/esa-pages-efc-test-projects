@@ -19,5 +19,8 @@
   "packageManager": "yarn@1.22.22",
   "resolutions": {
     "nitropack": "2.13.6"
+  },
+  "engines": {
+    "node": "22.23.2"
   }
 }
