@@ -1,0 +1,4 @@
+{
+  "name": "nuxt4-hybrid-yarn",
+  "installCommand": "yarn install --frozen-lockfile"
+}

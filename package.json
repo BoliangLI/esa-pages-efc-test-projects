@@ -1,0 +1,23 @@
+{
+  "name": "nuxt4-hybrid-yarn",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "start": "node .output/server/index.mjs"
+  },
+  "dependencies": {
+    "@nuxt/image": "^2.2.1",
+    "consola": "^3.4.2",
+    "nitropack": "2.13.6",
+    "nuxt": "4.4.8"
+  },
+  "packageManager": "yarn@1.22.22",
+  "resolutions": {
+    "nitropack": "2.13.6"
+  }
+}
