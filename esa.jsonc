@@ -1,4 +1,4 @@
 {
-  "name": "nuxt4-hybrid-yarn",
+  "name": "pcg-nuxt4-yarn-esm",
   "installCommand": "yarn install --frozen-lockfile"
 }
