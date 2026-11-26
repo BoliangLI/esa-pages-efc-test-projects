@@ -17,6 +17,7 @@
     "nuxt": "4.4.8"
   },
   "overrides": {
-    "nitropack": "$nitropack"
+    "nitropack": "$nitropack",
+    "vue-router": "5.5.1"
   }
 }
