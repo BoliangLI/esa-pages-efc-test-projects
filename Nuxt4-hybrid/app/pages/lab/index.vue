@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 总览页本身不缓存；下方三块数据全部在浏览器里实时请求，不受页面缓存影响。
 const pages = [
+  ['/lab/ssr', '纯 SSR，每次请求重新渲染'],
   ['/lab/swr', 'swr: 5'],
   ['/lab/l2/swr', 'swr: 5，只看 L2'],
   ['/lab/swr-long', 'swr: 5，版本隔离'],

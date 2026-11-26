@@ -55,6 +55,7 @@ Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 的各种缓存�
 
 | 路径 | 规则 | 本地实测 | 线上待确认 |
 |------|------|----------|------------|
+| `/lab/ssr` | 默认 SSR，仅设置 `private, no-store` 响应头 | 同一 URL 连续请求两次均返回 200，原始 HTML 中的 renderId 不同 | 按请求 traceId 核对网关日志，该页应无页面缓存读写 |
 | `/lab/swr` | `swr: 5` | `s-maxage=5, stale-while-revalidate`，重复请求 renderId 不变 | L1 命中时 `age`/`via` 等边缘头 |
 | `/lab/l2/swr` | `swr: 5`，关 L1 | L2 命中 renderId 不变；过期后第 1 次返回旧内容，3s 后已重新生成 | 跨实例：`rendered-by ≠ served-by`；响应后实例被冻结时后台重新生成是否完成 |
 | `/lab/swr-long` | `swr: 5` | — | 缓存过期前切换到新版本，首次访问应是冷缓存（renderId 与上一版本不同）；超出 5s 无法区分自然过期与版本隔离 |
@@ -121,6 +122,7 @@ Nuxt 4 混合渲染黑盒探针：一次部署覆盖 routeRules 的各种缓存�
 ./probe.sh https://<域名>           # 约 30s
 SLOW=1 ./probe.sh https://<域名>    # 额外跑 swr 过期（等待 6s 过期 + 3s 后台重新生成）
 ISR_ONLY=1 ./probe.sh https://<域名> # 只跑 ISR 按需失效，有失败时退出非零
+SSR_ONLY=1 ./probe.sh https://<域名> # 只跑纯 SSR，比较同一 URL 两次返回的 HTML
 ```
 
 - 在本机执行，只向部署域名发 HTTP 请求，不需要进入容器；本机需要 `curl`。

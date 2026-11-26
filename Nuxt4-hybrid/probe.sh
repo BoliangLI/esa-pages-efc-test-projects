@@ -6,6 +6,7 @@
 #   ./probe.sh http://127.0.0.1:3101     # 本地（见 README「本地验证」）
 #   SLOW=1 ./probe.sh <base>             # 额外跑 swr 过期（额外等待约 9s）
 #   ISR_ONLY=1 ./probe.sh <base>         # 只跑 ISR 按需失效
+#   SSR_ONLY=1 ./probe.sh <base>         # 只跑纯 SSR
 #
 # 判定：✓ 与 README 观测表的「现状」一致；✗ 不一致（需要人工看）；· 只打印观测值。
 # 每次运行带唯一 query（?p=<run>），保证 L1/L2 都是冷的；需要排除 L1 的判定走 /lab/l2/**。
@@ -47,6 +48,25 @@ page() { # 打印一次页面请求的关键信息，并把 renderId 写入 $RID
   fetch "$@"
   RID=$(lab renderId)
   info "$STATUS rid=${RID:0:8} user=$(lab cookieUser) data=$(lab dataId | cut -c1-8)/$(lab dataUser) cc=[$(hdr cache-control)] served=$(hdr x-lab-served-by | tail -c 7) key=$(hdr x-lab-cache-key) $(edge)"
+}
+probe_ssr() {
+  section "纯 SSR（/lab/ssr）"
+  local url="$BASE/lab/ssr?p=$RUN" first='' attempt
+  for attempt in 1 2; do
+    page "$url"
+    check "第 ${attempt} 次状态码" 200 "$STATUS"
+    check "第 ${attempt} 次缓存策略" "private, no-store" "$(hdr cache-control)"
+    check "第 ${attempt} 次无路由缓存键" "" "$(hdr x-lab-cache-key)"
+    if [ -z "$RID" ]; then
+      check "第 ${attempt} 次 HTML 包含 renderId" present missing
+    elif [ "$attempt" = 1 ]; then
+      first=$RID
+    elif [ "$RID" = "$first" ]; then
+      check "同一 URL 重新渲染" changed unchanged
+    else
+      check "同一 URL 重新渲染" changed changed
+    fi
+  done
 }
 isr_invalidate() {
   local scope=$1 cdn origin
@@ -134,6 +154,11 @@ probe_isr() {
   fi
 }
 
+if [ "${SSR_ONLY:-0}" = 1 ]; then
+  probe_ssr
+  [ "$FAIL" -eq 0 ]
+  exit $?
+fi
 if [ "${ISR_ONLY:-0}" = 1 ]; then
   probe_isr
   printf '\n合计：✓ %s  ✗ %s\n' "$PASS" "$FAIL"
@@ -160,6 +185,8 @@ EOF
 par() { seq "$2" | xargs -P "$2" -I{} bash "$TMP/w.sh" "$1"; }
 
 echo "Nuxt4-hybrid probe  base=$BASE  run=$RUN"
+
+probe_ssr
 
 section "运行时基础（whoami / env / diag）"
 fetch "$BASE/api/lab/whoami"

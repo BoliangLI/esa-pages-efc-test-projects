@@ -38,6 +38,7 @@ export default defineNuxtConfig({
     }
   },
   routeRules: {
+    '/lab/ssr': { headers: { 'cache-control': 'private, no-store' } },
     '/lab/swr': { swr: 5 },
     '/lab/l2/swr': { swr: 5 },
     '/lab/swr-long': { swr: 5 },
